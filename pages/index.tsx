@@ -1,11 +1,22 @@
+import { useEffect, useState } from 'react';
 import Layout from '../components/Layout/Layout';
 import StatCard from '../components/Dashboard/StatCard';
 import { mockStatistics } from '../data/mockStatistics';
 import { mockBookings } from '../data/mockBookings';
 
 export default function Dashboard() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const stats = mockStatistics;
   const recentBookings = mockBookings.slice(0, 5);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <Layout title="儀表板" subtitle="歡迎回到琳達髮廊管理系統">
