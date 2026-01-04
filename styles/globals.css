@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-100 text-gray-900;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm;
+  }
+
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-300;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow p-6 border border-gray-200;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer;
+  }
+
+  .sidebar-item.active {
+    @apply bg-primary-600 text-white;
+  }
+
+  .stat-card {
+    @apply bg-white rounded-lg shadow p-6 border border-gray-200 hover:shadow-md transition-shadow;
+  }
+}
+
+/* Calendar styles */
+.rbc-calendar {
+  @apply bg-white rounded-lg shadow;
+}
+
+.rbc-header {
+  @apply py-3 font-semibold text-gray-700 border-b border-gray-200;
+}
+
+.rbc-today {
+  @apply bg-primary-50;
+}
+
+.rbc-event {
+  @apply bg-primary-500 border-none rounded px-2 py-1;
+}
+
+.rbc-event:hover {
+  @apply bg-primary-600;
+}
+
+.rbc-selected {
+  @apply bg-primary-700;
+}
