@@ -1,192 +1,292 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { useAuth } from '../contexts/AuthContext';
+import { statisticsService, DashboardStats } from '../lib/services/statistics.service';
+import { bookingService, Booking } from '../lib/services/booking.service';
 import Layout from '../components/Layout/Layout';
-import StatCard from '../components/Dashboard/StatCard';
-import { mockStatistics } from '../data/mockStatistics';
-import { mockBookings } from '../data/mockBookings';
 
 export default function Dashboard() {
-  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    // Check authentication
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
 
-  const stats = mockStatistics;
-  const recentBookings = mockBookings.slice(0, 5);
+      if (user?.role !== 'admin') {
+        alert('需要管理員權限');
+        router.push('/login');
+        return;
+      }
 
-  if (!mounted) {
-    return null;
+      // Fetch data if authenticated
+      fetchData();
+    }
+  }, [authLoading, isAuthenticated, user, router]);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [dashboardData, bookingsData] = await Promise.all([
+        statisticsService.getDashboard(),
+        bookingService.getAll(),
+      ]);
+
+      setStats(dashboardData);
+      setRecentBookings(bookingsData.slice(0, 5));
+    } catch (err: any) {
+      console.error('Failed to fetch data:', err);
+      setError(err.response?.data?.error || 'Failed to load data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">載入中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout title="儀表板" subtitle="歡迎回來">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h2 className="text-lg font-bold text-red-800 mb-2">載入失敗</h2>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={fetchData}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            重試
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  const getStatusText = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'confirmed': '已確認',
+      'pending': '待確認',
+      'completed': '已完成',
+      'cancelled': '已取消',
+    };
+    return statusMap[status] || status;
+  };
+
+  const getStatusColor = (status: string) => {
+    const colorMap: Record<string, string> = {
+      'confirmed': 'bg-green-100 text-green-700',
+      'pending': 'bg-yellow-100 text-yellow-700',
+      'completed': 'bg-blue-100 text-blue-700',
+      'cancelled': 'bg-gray-100 text-gray-700',
+    };
+    return colorMap[status] || 'bg-gray-100 text-gray-700';
+  };
+
+  if (!stats) {
+    return (
+      <Layout title="Dashboard" subtitle="Welcome">
+        <div className="text-center py-12">
+          <p className="text-gray-600">No data available</p>
+        </div>
+      </Layout>
+    );
   }
 
   return (
-    <Layout title="儀表板" subtitle="歡迎回到琳達髮廊管理系統">
+    <Layout title="Dashboard" subtitle={`Welcome, ${user?.name}`}>
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="今日預約"
-          value={stats.todayBookings}
-          icon="📅"
-          change="+2 較昨日"
-          changeType="positive"
-        />
-        <StatCard
-          title="本週預約"
-          value={stats.weekBookings}
-          icon="📊"
-          change="+8% 較上週"
-          changeType="positive"
-        />
-        <StatCard
-          title="本月營收"
-          value={`NT$ ${stats.monthRevenue.toLocaleString()}`}
-          icon="💰"
-          change="+12% 較上月"
-          changeType="positive"
-        />
-        <StatCard
-          title="今日營收"
-          value={`NT$ ${stats.todayRevenue.toLocaleString()}`}
-          icon="💵"
-        />
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm font-medium">今日預約</p>
+              <p className="text-3xl font-bold mt-2">{stats.today_bookings}</p>
+            </div>
+            <div className="bg-white/20 rounded-full p-3">
+              <span className="text-3xl">📅</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm font-medium">本週預約</p>
+              <p className="text-3xl font-bold mt-2">{stats.week_bookings}</p>
+            </div>
+            <div className="bg-white/20 rounded-full p-3">
+              <span className="text-3xl">📊</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm font-medium">本月預約</p>
+              <p className="text-3xl font-bold mt-2">{stats.month_bookings}</p>
+            </div>
+            <div className="bg-white/20 rounded-full p-3">
+              <span className="text-3xl">✅</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-amber-100 text-sm font-medium">本月營收</p>
+              <p className="text-3xl font-bold mt-2">NT$ {stats.month_revenue.toLocaleString()}</p>
+            </div>
+            <div className="bg-white/20 rounded-full p-3">
+              <span className="text-3xl">💰</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Popular Services */}
-        <div className="card">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">熱門服務</h2>
-          <div className="space-y-3">
-            {stats.popularServices.map((service, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">{service.name}</span>
-                    <span className="text-sm text-gray-600">{service.count} 次</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-primary-500 h-2 rounded-full"
-                      style={{ width: `${service.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Top Stylists */}
-        <div className="card">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">設計師業績排行</h2>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">熱門設計師</h2>
           <div className="space-y-4">
-            {stats.topStylists.map((stylist, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center font-bold text-primary-600">
-                    {index + 1}
-                  </div>
+            {stats.top_stylists && stats.top_stylists.length > 0 ? (
+              stats.top_stylists.map((stylist) => (
+                <div key={stylist.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900">{stylist.name}</p>
-                    <p className="text-sm text-gray-600">{stylist.bookings} 個預約</p>
+                    <p className="text-sm text-gray-600">{stylist.booking_count} 次預約</p>
                   </div>
+                  {stylist.revenue && stylist.revenue > 0 && (
+                    <span className="font-bold text-indigo-600">NT$ {stylist.revenue.toLocaleString()}</span>
+                  )}
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-primary-600">NT$ {stylist.revenue.toLocaleString()}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-4">暫無資料</p>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Revenue Chart */}
-      <div className="card mb-8">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">每日營收趨勢</h2>
-        <div className="flex items-end justify-between gap-2 h-48">
-          {stats.revenueByDay.map((day, index) => {
-            const maxRevenue = Math.max(...stats.revenueByDay.map(d => d.revenue));
-            const height = (day.revenue / maxRevenue) * 100;
-            return (
-              <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full flex flex-col items-center">
-                  <span className="text-xs text-gray-600 mb-1">{day.bookings}</span>
-                  <div
-                    className="w-full bg-primary-500 rounded-t hover:bg-primary-600 transition-colors cursor-pointer"
-                    style={{ height: `${height}%`, minHeight: '20px' }}
-                    title={`NT$ ${day.revenue.toLocaleString()}`}
-                  />
+        {/* Quick Actions */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">快速操作</h2>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push('/services')}
+              className="w-full p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">💇</span>
+                  <div>
+                    <p className="font-medium text-gray-900">管理服務項目</p>
+                    <p className="text-sm text-gray-600">新增、編輯服務</p>
+                  </div>
                 </div>
-                <span className="text-xs text-gray-600">{day.date}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              </button>
+              <button
+                onClick={() => router.push('/stylists')}
+                className="w-full p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">👨‍🎨</span>
+                  <div>
+                    <p className="font-medium text-gray-900">管理設計師</p>
+                    <p className="text-sm text-gray-600">設計師資料與排班</p>
+                  </div>
+                </div>
+              </button>
+              <button
+                onClick={() => router.push('/bookings')}
+                className="w-full p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📅</span>
+                  <div>
+                    <p className="font-medium text-gray-900">預約管理</p>
+                    <p className="text-sm text-gray-600">查看與管理預約</p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
 
-      {/* Recent Bookings */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">最新預約</h2>
-          <a href="/bookings" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-            查看全部 →
-          </a>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">客戶</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">服務</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">設計師</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">日期時間</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">狀態</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">金額</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentBookings.map((booking) => (
-                <tr key={booking.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4">
-                    <div>
-                      <p className="font-medium text-gray-900">{booking.customerName}</p>
-                      <p className="text-sm text-gray-600">{booking.customerPhone}</p>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-gray-700">{booking.serviceName}</td>
-                  <td className="py-3 px-4 text-gray-700">{booking.stylistName}</td>
-                  <td className="py-3 px-4">
-                    <div>
-                      <p className="text-gray-900">{booking.date}</p>
-                      <p className="text-sm text-gray-600">{booking.time}</p>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        booking.status === 'confirmed'
-                          ? 'bg-green-100 text-green-700'
-                          : booking.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : booking.status === 'completed'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      {booking.status === 'confirmed'
-                        ? '已確認'
-                        : booking.status === 'pending'
-                        ? '待確認'
-                        : booking.status === 'completed'
-                        ? '已完成'
-                        : '已取消'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right font-medium text-gray-900">
-                    NT$ {booking.price.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Recent Bookings */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900">最新預約</h2>
+            <button
+              onClick={() => router.push('/bookings')}
+              className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+            >
+              查看全部 →
+            </button>
+          </div>
+
+          {recentBookings.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>目前沒有預約記錄</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">客戶</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">服務</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">設計師</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">日期時間</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">狀態</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentBookings.map((booking) => (
+                    <tr key={booking.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <div>
+                          <p className="font-medium text-gray-900">{booking.user?.name || '沒有姓名'}</p>
+                          <p className="text-sm text-gray-600">{booking.user?.phone || '沒有電話'}</p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {booking.services && booking.services.length > 0
+                          ? booking.services.map((s: any) => s.name).join(', ')
+                          : '沒有服務'}
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">{booking.stylist?.name || '沒有設計師'}</td>
+                      <td className="py-3 px-4">
+                        <div>
+                          <p className="text-gray-900">{new Date(booking.booking_date).toLocaleDateString('zh-TW')}</p>
+                          <p className="text-sm text-gray-600">{booking.start_time}</p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
+                          {getStatusText(booking.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </Layout>
