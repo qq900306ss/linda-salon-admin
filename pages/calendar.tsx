@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Layout from '../components/Layout/Layout';
 import { Calendar as BigCalendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { mockBookings, generateMockBookings } from '../data/mockBookings';
+import { useAuth } from '../contexts/AuthContext';
+import { bookingService, Booking } from '../lib/services/booking.service';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 // 設定行事曆本地化
 const locales = {
@@ -25,34 +28,70 @@ interface CalendarEvent {
   start: Date;
   end: Date;
   resource: {
-    booking: any;
+    booking: Booking;
     status: string;
   };
 }
 
 export default function CalendarPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [view, setView] = useState<View>('month');
   const [date, setDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // 合併所有預約資料
-  const allBookings = useMemo(() => {
-    return [...mockBookings, ...generateMockBookings(30)];
-  }, []);
+  // 驗證管理員權限並載入資料
+  useEffect(() => {
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
+      if (user?.role !== 'admin') {
+        alert('需要管理員權限');
+        router.push('/login');
+        return;
+      }
+      fetchBookings();
+    }
+  }, [authLoading, isAuthenticated, user, router]);
+
+  const fetchBookings = async () => {
+    try {
+      setIsLoading(true);
+      const data = await bookingService.getAll();
+      setBookings(data);
+      setError('');
+    } catch (err: any) {
+      console.error('Failed to fetch bookings:', err);
+      setError(err.response?.data?.error || '載入預約資料失敗');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 將預約資料轉換為行事曆事件
   const events: CalendarEvent[] = useMemo(() => {
-    return allBookings.map((booking) => {
-      const [hours, minutes] = booking.time.split(':');
-      const startDate = new Date(booking.date);
+    return bookings.map((booking) => {
+      const [hours, minutes] = booking.start_time.split(':');
+      const startDate = new Date(booking.booking_date);
       startDate.setHours(parseInt(hours), parseInt(minutes));
 
-      const endDate = new Date(startDate);
-      endDate.setMinutes(endDate.getMinutes() + booking.duration);
+      const [endHours, endMinutes] = booking.end_time.split(':');
+      const endDate = new Date(booking.booking_date);
+      endDate.setHours(parseInt(endHours), parseInt(endMinutes));
+
+      const serviceNames = booking.services && booking.services.length > 0
+        ? booking.services.map((s: any) => s.name).join(', ')
+        : '未知服務';
+      const customerName = booking.user?.name || '未知客戶';
 
       return {
-        id: booking.id,
-        title: `${booking.customerName} - ${booking.serviceName}`,
+        id: booking.id.toString(),
+        title: `${customerName} - ${serviceNames}`,
         start: startDate,
         end: endDate,
         resource: {
@@ -61,7 +100,7 @@ export default function CalendarPage() {
         },
       };
     });
-  }, [allBookings]);
+  }, [bookings]);
 
   // 事件樣式
   const eventStyleGetter = (event: CalendarEvent) => {
@@ -101,11 +140,62 @@ export default function CalendarPage() {
     setSelectedEvent(null);
   };
 
+  const handleStatusChange = async (id: number, newStatus: 'pending' | 'confirmed' | 'completed' | 'cancelled') => {
+    const statusText = {
+      pending: '待確認',
+      confirmed: '已確認',
+      completed: '已完成',
+      cancelled: '已取消',
+    };
+
+    if (!confirm(`確定要將預約狀態改為「${statusText[newStatus]}」嗎？`)) {
+      return;
+    }
+
+    try {
+      await bookingService.updateStatus(id, { status: newStatus });
+      await fetchBookings(); // 重新載入資料
+      setSelectedEvent(null); // 關閉彈窗
+      alert('狀態更新成功');
+    } catch (err: any) {
+      console.error('Failed to update status:', err);
+      alert(err.response?.data?.error || '更新狀態失敗');
+    }
+  };
+
   // 統計當天預約
   const todayBookingsCount = events.filter((event) => {
     const today = new Date();
     return event.start.toDateString() === today.toDateString();
   }).length;
+
+  // Loading 狀態
+  if (authLoading || isLoading) {
+    return (
+      <Layout title="行事曆" subtitle="查看所有預約排程">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">載入中...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Error 狀態
+  if (error) {
+    return (
+      <Layout title="行事曆" subtitle="查看所有預約排程">
+        <div className="text-center py-12">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button onClick={fetchBookings} className="btn-primary">
+            重試
+          </button>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="行事曆" subtitle="查看所有預約排程">
@@ -114,7 +204,7 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div>
-              <p className="text-sm text-gray-600">本月預約</p>
+              <p className="text-sm text-gray-600">總預約數</p>
               <p className="text-2xl font-bold text-gray-900">{events.length}</p>
             </div>
             <div className="h-10 w-px bg-gray-300" />
@@ -202,43 +292,66 @@ export default function CalendarPage() {
               <div>
                 <p className="text-sm text-gray-600">客戶姓名</p>
                 <p className="text-lg font-medium text-gray-900">
-                  {selectedEvent.resource.booking.customerName}
+                  {selectedEvent.resource.booking.user?.name || '未知客戶'}
                 </p>
               </div>
 
               <div>
                 <p className="text-sm text-gray-600">聯絡電話</p>
-                <p className="text-gray-900">{selectedEvent.resource.booking.customerPhone}</p>
+                <p className="text-gray-900">
+                  {selectedEvent.resource.booking.user?.phone || '未提供'}
+                </p>
               </div>
 
-              {selectedEvent.resource.booking.customerEmail && (
+              {selectedEvent.resource.booking.user?.email && (
                 <div>
                   <p className="text-sm text-gray-600">電子郵件</p>
-                  <p className="text-gray-900">{selectedEvent.resource.booking.customerEmail}</p>
+                  <p className="text-gray-900">{selectedEvent.resource.booking.user.email}</p>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">服務項目</p>
-                  <p className="text-gray-900">{selectedEvent.resource.booking.serviceName}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">設計師</p>
-                  <p className="text-gray-900">{selectedEvent.resource.booking.stylistName}</p>
-                </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-2">服務項目</p>
+                {selectedEvent.resource.booking.services && selectedEvent.resource.booking.services.length > 0 ? (
+                  <div className="space-y-1">
+                    {selectedEvent.resource.booking.services.map((service: any, idx: number) => (
+                      <p key={idx} className="text-gray-900">
+                        • {service.name} ({service.duration} 分鐘 / NT$ {service.price})
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">沒有服務</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">設計師</p>
+                  <p className="text-gray-900">
+                    {selectedEvent.resource.booking.stylist?.name || '未指定'}
+                  </p>
+                </div>
                 <div>
                   <p className="text-sm text-gray-600">預約時間</p>
                   <p className="text-gray-900">
                     {format(selectedEvent.start, 'yyyy/MM/dd HH:mm')}
                   </p>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">服務時長</p>
-                  <p className="text-gray-900">{selectedEvent.resource.booking.duration} 分鐘</p>
+                  <p className="text-sm text-gray-600">總時長</p>
+                  <p className="text-gray-900">
+                    {selectedEvent.resource.booking.duration || 0} 分鐘
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">總金額</p>
+                  <p className="text-xl font-bold text-primary-600">
+                    NT$ {(selectedEvent.resource.booking.price || 0).toLocaleString()}
+                  </p>
                 </div>
               </div>
 
@@ -265,13 +378,6 @@ export default function CalendarPage() {
                 </span>
               </div>
 
-              <div>
-                <p className="text-sm text-gray-600">金額</p>
-                <p className="text-xl font-bold text-primary-600">
-                  NT$ {selectedEvent.resource.booking.price.toLocaleString()}
-                </p>
-              </div>
-
               {selectedEvent.resource.booking.notes && (
                 <div>
                   <p className="text-sm text-gray-600">備註</p>
@@ -281,8 +387,48 @@ export default function CalendarPage() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button className="btn-secondary flex-1">編輯預約</button>
-              <button className="btn-primary flex-1">確認預約</button>
+              {selectedEvent.resource.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => handleStatusChange(selectedEvent.resource.booking.id, 'confirmed')}
+                    className="btn-primary flex-1"
+                  >
+                    確認預約
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(selectedEvent.resource.booking.id, 'cancelled')}
+                    className="btn-secondary flex-1"
+                  >
+                    取消預約
+                  </button>
+                </>
+              )}
+              {selectedEvent.resource.status === 'confirmed' && (
+                <>
+                  <button
+                    onClick={() => handleStatusChange(selectedEvent.resource.booking.id, 'completed')}
+                    className="btn-primary flex-1"
+                  >
+                    標記完成
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(selectedEvent.resource.booking.id, 'cancelled')}
+                    className="btn-secondary flex-1"
+                  >
+                    取消預約
+                  </button>
+                </>
+              )}
+              {selectedEvent.resource.status === 'completed' && (
+                <button onClick={handleCloseModal} className="btn-secondary flex-1">
+                  關閉
+                </button>
+              )}
+              {selectedEvent.resource.status === 'cancelled' && (
+                <button onClick={handleCloseModal} className="btn-secondary flex-1">
+                  關閉
+                </button>
+              )}
             </div>
           </div>
         </div>
