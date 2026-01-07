@@ -139,7 +139,13 @@ export default function StatisticsPage() {
 
         {/* Revenue Stats */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">營收概覽</h2>
+          <div className="flex items-start justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">營收概覽</h2>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-700 max-w-xs">
+              <strong className="block mb-1">💡 營收計算說明</strong>
+              僅統計「已完成」狀態的預約（客戶已到店完成服務），不包含待確認、已確認或已取消的預約
+            </div>
+          </div>
           <div className="space-y-4">
             <div className="flex justify-between items-center py-3 border-b border-gray-200">
               <span className="text-gray-600">本月總營收</span>
