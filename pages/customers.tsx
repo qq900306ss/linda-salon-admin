@@ -121,7 +121,7 @@ export default function CustomersPage() {
     <Layout title="會員管理" subtitle="管理所有註冊會員資料">
       <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -134,23 +134,39 @@ export default function CustomersPage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Google 登入</p>
-                <p className="text-3xl font-bold text-primary-600">
-                  {customers.filter(c => c.oauth_provider === 'google').length}
+                <p className="text-gray-600 text-sm">管理員帳號</p>
+                <p className="text-3xl font-bold text-purple-600">
+                  {customers.filter(c => c.role === 'admin').length}
                 </p>
               </div>
-              <div className="text-4xl">🔵</div>
+              <div className="text-4xl">👑</div>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">LINE 登入</p>
-                <p className="text-3xl font-bold text-primary-600">
-                  {customers.filter(c => c.oauth_provider === 'line').length}
+                <p className="text-gray-600 text-sm">一般會員</p>
+                <p className="text-3xl font-bold text-blue-600">
+                  {customers.filter(c => c.role === 'customer').length}
                 </p>
               </div>
-              <div className="text-4xl">🟢</div>
+              <div className="text-4xl">🙋</div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm">本月新增</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {customers.filter(c => {
+                    const createdDate = new Date(c.created_at);
+                    const now = new Date();
+                    return createdDate.getMonth() === now.getMonth() &&
+                           createdDate.getFullYear() === now.getFullYear();
+                  }).length}
+                </p>
+              </div>
+              <div className="text-4xl">✨</div>
             </div>
           </div>
         </div>
