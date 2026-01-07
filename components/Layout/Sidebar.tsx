@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { name: '設計師管理', path: '/stylists', icon: '👥' },
   { name: '會員管理', path: '/customers', icon: '👤' },
   { name: '統計報表', path: '/statistics', icon: '📈' },
+  { name: '資源管理', path: '/assets', icon: '🎨' },
 ];
 
 export default function Sidebar() {
