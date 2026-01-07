@@ -22,19 +22,19 @@ export interface UsersResponse {
 
 export const userService = {
   async getAll(limit = 100, offset = 0): Promise<UsersResponse> {
-    const response = await api.get('/admin/users', {
+    const response = await api.get('/api/v1/admin/users', {
       params: { limit, offset }
     });
     return response.data;
   },
 
   async getById(id: number): Promise<User> {
-    const response = await api.get(`/admin/users/${id}`);
+    const response = await api.get(`/api/v1/admin/users/${id}`);
     return response.data;
   },
 
   async getUserBookings(id: number): Promise<Booking[]> {
-    const response = await api.get(`/admin/users/${id}/bookings`);
+    const response = await api.get(`/api/v1/admin/users/${id}/bookings`);
     return response.data;
   }
 };
