@@ -57,7 +57,7 @@ export default function StatisticsPage() {
 
   if (authLoading || isLoading) {
     return (
-      <Layout>
+      <Layout title="統計報表" subtitle="載入中...">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
@@ -67,7 +67,7 @@ export default function StatisticsPage() {
 
   if (error) {
     return (
-      <Layout>
+      <Layout title="統計報表" subtitle="發生錯誤">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700">{error}</p>
           <button
@@ -82,14 +82,10 @@ export default function StatisticsPage() {
   }
 
   return (
-    <Layout>
+    <Layout title="統計報表" subtitle="查看營運數據與分析報告">
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">統計報表</h1>
-            <p className="text-gray-600 mt-1">查看營運數據與分析報告</p>
-          </div>
+        {/* Refresh Button */}
+        <div className="flex justify-end">
           <button
             onClick={fetchStats}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"

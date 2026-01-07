@@ -99,7 +99,7 @@ export default function CustomersPage() {
 
   if (authLoading || isLoading) {
     return (
-      <Layout>
+      <Layout title="會員管理" subtitle="載入中...">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
@@ -109,7 +109,7 @@ export default function CustomersPage() {
 
   if (error) {
     return (
-      <Layout>
+      <Layout title="會員管理" subtitle="發生錯誤">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700">{error}</p>
         </div>
@@ -118,16 +118,8 @@ export default function CustomersPage() {
   }
 
   return (
-    <Layout>
+    <Layout title="會員管理" subtitle="管理所有註冊會員資料">
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">會員管理</h1>
-            <p className="text-gray-600 mt-1">管理所有註冊會員資料</p>
-          </div>
-        </div>
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-lg shadow-md p-6">
