@@ -11,6 +11,7 @@
   "dependencies": {
     "autoprefixer": "^10.4.0",
     "axios": "^1.6.0",
+    "beauty-salon-booking": "file:../beauty-salon-booking",
     "date-fns": "^3.0.0",
     "next": "^14.0.0",
     "postcss": "^8.4.0",

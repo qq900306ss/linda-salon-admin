@@ -14,18 +14,21 @@ export default function StatCard({ title, value, icon, change, changeType = 'neu
   };
 
   return (
-    <div className="stat-card">
+    <div className="stat-card group cursor-default">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+          <p className="text-secondary-400 text-xs font-bold uppercase tracking-wider">{title}</p>
+          <p className="text-3xl font-serif font-bold text-secondary-800 mt-2 tracking-tight group-hover:text-primary-600 transition-colors">{value}</p>
           {change && (
-            <p className={`text-sm mt-2 ${changeColors[changeType]}`}>
-              {change}
-            </p>
+            <div className={`flex items-center gap-1 mt-3 text-sm font-medium ${changeColors[changeType]}`}>
+              <span>{changeType === 'positive' ? '↑' : changeType === 'negative' ? '↓' : '•'}</span>
+              <span>{change}</span>
+            </div>
           )}
         </div>
-        <div className="text-4xl">{icon}</div>
+        <div className="text-3xl p-3 rounded-xl bg-secondary-50 text-secondary-600 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors duration-300">
+          {icon}
+        </div>
       </div>
     </div>
   );

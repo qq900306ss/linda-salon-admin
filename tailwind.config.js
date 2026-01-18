@@ -7,6 +7,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        serif: ['Playfair Display', 'serif'],
+      },
       colors: {
         primary: {
           50: '#fef7ee',
@@ -20,9 +24,22 @@ module.exports = {
           800: '#942a1c',
           900: '#78251b',
         },
+        secondary: {
+          50: '#f0f9ff', // Maintain legacy secondary for now if used, or switch to stone
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+        },
         admin: {
-          dark: '#1e293b',
-          sidebar: '#0f172a',
+          dark: '#1c1917', // stone-900
+          sidebar: '#292524', // stone-800
+          bg: '#fafaf9', // stone-50
         }
       }
     },
