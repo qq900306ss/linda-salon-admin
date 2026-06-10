@@ -1,5 +1,6 @@
 'use client';
 
+import { addDays, format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Check,
@@ -47,8 +48,8 @@ export default function BookingsPage() {
   const [stylists, setStylists] = useState<Stylist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [from, setFrom] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [to, setTo] = useState(() => format(addDays(new Date(), 30), 'yyyy-MM-dd'));
   const [status, setStatus] = useState('');
   const [stylistId, setStylistId] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -61,8 +62,8 @@ export default function BookingsPage() {
     setError(false);
     try {
       const data = await getBookings({
-        from: from || undefined,
-        to: to || undefined,
+        from: from && to ? from : undefined,
+        to: from && to ? to : undefined,
         status: status || undefined,
         stylistId: stylistId || undefined,
       });
