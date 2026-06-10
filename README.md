@@ -1,101 +1,74 @@
-# 琳達髮廊管理後台 (Linda Salon Admin)
+# Linda Salon 管理後台
 
-琳達髮廊的管理後台系統，提供預約管理、統計報表、服務設定等功能。
-
-## 功能特色
-
-- 📊 **儀表板** - 即時統計數據與營收分析
-- 📅 **行事曆** - 視覺化預約排程管理
-- 📋 **預約管理** - 查詢、確認、取消預約
-- 💇‍♀️ **服務管理** - 管理服務項目與價格
-- 👥 **設計師管理** - 設計師資料與排班
-- 👤 **會員管理** - 客戶資料管理
-- 📈 **統計報表** - 詳細業績分析
+Linda Salon 美髮沙龍的管理後台，採用深色玻璃擬態（Glassmorphism）設計風格，支援靜態匯出並部署至 AWS S3 + CloudFront。
 
 ## 技術棧
 
-- **框架**: Next.js 14 with TypeScript
-- **樣式**: Tailwind CSS
-- **行事曆**: React Big Calendar
-- **日期處理**: date-fns
-- **部署**: AWS Amplify
+- **Next.js 14**（App Router、靜態匯出 `output: 'export'`）
+- **TypeScript**
+- **Tailwind CSS** — 深色玻璃擬態主題（玫瑰粉品牌色）
+- **framer-motion** — 頁面轉場與微動畫
+- **recharts** — 營收圖表
+- **lucide-react** — 圖示
+- **date-fns** — 日期處理（自製月曆元件）
 
-## 本地開發
+## 功能頁面
 
-1. 安裝依賴：
+| 路徑 | 功能 |
+| --- | --- |
+| `/login` | 管理員登入 |
+| `/` | 總覽：今日／本週／本月統計、30 天營收趨勢、熱門服務與設計師排行、最近預約 |
+| `/calendar` | 月曆檢視預約，點擊日期顯示當日預約清單 |
+| `/bookings` | 預約管理：日期／狀態／設計師篩選、確認／完成／取消、顧客明細展開 |
+| `/services` | 服務項目卡片管理（含圖片上傳、上下架） |
+| `/stylists` | 設計師管理（專長標籤、評分、排班設定、休假日） |
+| `/customers` | 顧客列表搜尋與消費紀錄抽屜 |
+| `/statistics` | 自訂日期區間營收統計與服務／設計師營收占比 |
+| `/settings` | 沙龍基本資訊、營業時間、預約間隔、公休日 |
+
+## 開發環境設定
+
 ```bash
+# 1. 安裝依賴
 npm install
-```
 
-2. 啟動開發伺服器：
-```bash
+# 2. 設定環境變數
+cp .env.local.example .env.local
+# 編輯 .env.local，填入後端 API 位址
+
+# 3. 啟動開發伺服器（埠 3001）
 npm run dev
 ```
 
-3. 在瀏覽器中打開 [http://localhost:3001](http://localhost:3001)
+### 環境變數
 
-## 專案結構
+| 變數 | 說明 | 預設值 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | 後端 API 位址（不含結尾斜線） | `http://localhost:4000` |
 
-```
-linda-salon-admin/
-├── pages/                    # Next.js 頁面
-│   ├── index.tsx            # 儀表板
-│   ├── calendar.tsx         # 行事曆
-│   ├── bookings/            # 預約管理
-│   ├── services/            # 服務管理
-│   └── stylists/            # 設計師管理
-├── components/              # React 元件
-│   ├── Layout/              # 佈局元件
-│   ├── Dashboard/           # 儀表板元件
-│   └── Calendar/            # 行事曆元件
-├── data/                    # 模擬資料
-│   ├── mockBookings.ts
-│   └── mockStatistics.ts
-├── styles/                  # 全域樣式
-│   └── globals.css
-└── types/                   # TypeScript 型別（從 api-spec 複製）
+## 建置（靜態匯出）
+
+```bash
+npm run build
 ```
 
-## 頁面說明
+建置完成後，靜態檔案會輸出至 `out/` 目錄，可直接上傳至任何靜態網站主機。
 
-### 儀表板 (/)
-- 今日/本週/本月預約統計
-- 營收趨勢圖表
-- 熱門服務排行
-- 設計師業績排行
-- 最新預約列表
+## 部署（S3 + CloudFront 摘要）
 
-### 行事曆 (/calendar)
-- 月/週/日視圖切換
-- 視覺化預約排程
-- 點擊查看預約詳情
-- 預約狀態顏色標示：
-  - 🟡 黃色：待確認
-  - 🟢 綠色：已確認
-  - ⚫ 灰色：已完成
-  - 🔴 紅色：已取消
+1. 將 `out/` 目錄內容同步至 S3 bucket：
+   ```bash
+   aws s3 sync out/ s3://<your-bucket> --delete
+   ```
+2. CloudFront 指向該 bucket（建議搭配 OAC），預設根物件設為 `index.html`。
+3. 部署後清除 CloudFront 快取：
+   ```bash
+   aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths "/*"
+   ```
 
-## 資料來源
+> 完整部署流程（含 IAM、OAC、自訂網域與 HTTPS 設定）請參閱 API 倉庫中的 `AWS-DEPLOYMENT-GUIDE.md`。
 
-目前使用模擬資料（mock data），未來將串接真實 API。
+## 認證機制
 
-資料定義參考：`../linda-salon-api-spec/`
-
-## 部署到 AWS Amplify
-
-1. 將專案推送到 GitHub
-2. 登入 AWS Amplify Console
-3. 選擇「New app」→「Host web app」
-4. 連接 GitHub repository
-5. 建置設定會自動偵測 Next.js
-6. 部署
-
-## 相關專案
-
-- **用戶端前台**: `../beauty-salon-booking`
-- **API 規格文件**: `../linda-salon-api-spec`
-- **API 後端**: 待建立
-
-## 授權
-
-MIT License
+- 登入後 JWT 儲存於 `localStorage`（key：`linda_admin_token`），所有管理 API 以 `Authorization: Bearer` 夾帶。
+- 收到 `401` 時自動清除 token 並導回 `/login`。
