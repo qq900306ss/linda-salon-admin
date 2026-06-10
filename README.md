@@ -1,5 +1,9 @@
 # Linda Salon 管理後台
 
+🔗 **線上展示:https://d3arpt1ou620zv.cloudfront.net/login/**
+
+> 整套系統:[客人預約網站](https://github.com/qq900306ss/beauty-salon-booking)([線上展示](https://d1mfjxqwxt860l.cloudfront.net))+ 本管理後台 + [Go Serverless API](https://github.com/qq900306ss/linda-salon-api)(AWS Lambda + DynamoDB,全套月費約 $0–1 美元)
+
 Linda Salon 美髮沙龍的管理後台，採用深色玻璃擬態（Glassmorphism）設計風格，支援靜態匯出並部署至 AWS S3 + CloudFront。
 
 ## 技術棧
