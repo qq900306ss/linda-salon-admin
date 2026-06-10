@@ -7,10 +7,8 @@ on:
 
 env:
   NEXT_PUBLIC_API_URL: https://hto562wdv4bdtiino5cksgesgy0qskpg.lambda-url.ap-northeast-1.on.aws
-  # TODO: 改成你 admin 前端的 S3 bucket 名稱(S3 Console 可查)
   S3_BUCKET: linda-salon-admin-site-1
-  # TODO: 改成 admin 的 CloudFront 發行版 ID(CloudFront Console 列表的 ID 欄,E 開頭)
-  CLOUDFRONT_DISTRIBUTION_ID: 請填入admin的發行版ID
+  CLOUDFRONT_DISTRIBUTION_ID: E1S4VY4GGW8IEI
 
 jobs:
   deploy:
